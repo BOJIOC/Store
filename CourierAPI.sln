@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Courier", "Courier\Courier.csproj", "{3245BB94-1E2D-4683-8D14-8FD453438734}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backendModuleA", "backendModuleA\backendModuleA.csproj", "{1C0E9952-15E1-4927-BA3F-3D0622A9328B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{3245BB94-1E2D-4683-8D14-8FD453438734}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3245BB94-1E2D-4683-8D14-8FD453438734}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3245BB94-1E2D-4683-8D14-8FD453438734}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C0E9952-15E1-4927-BA3F-3D0622A9328B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C0E9952-15E1-4927-BA3F-3D0622A9328B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C0E9952-15E1-4927-BA3F-3D0622A9328B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C0E9952-15E1-4927-BA3F-3D0622A9328B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

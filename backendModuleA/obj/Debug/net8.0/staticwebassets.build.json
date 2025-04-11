@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "CDc8LYYjUl8rlp2TadOfdVxSJ8OeEOcLjTV3oozRWjI=",
+  "Source": "backendModuleA",
+  "BasePath": "_content/backendModuleA",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
