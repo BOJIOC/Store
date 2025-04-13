@@ -1,0 +1,11 @@
+bin/
+obj/
+
+.vs/
+*.user
+*.suo
+*.swp
+*.DS_Store
+
+backendModuleA/Migrations/
+backendModuleB/Migrations/
