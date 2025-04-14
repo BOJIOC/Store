@@ -1,25 +1,7 @@
 using System.Net.Http.Json;
-
+using backendModuleV.Core.DTO.Store;
+using backendModuleV.Core.Interfaces;
 namespace backendModuleV.Infrastructure.Data;
-
-public class ProductDto
-{
-    public int Id { get; set; }
-    public string Code { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Brand { get; set; } = string.Empty;
-    public string Group { get; set; } = string.Empty;
-    public string? ImageUrl { get; set; }
-    public decimal Price { get; set; }
-}
-
-public interface IModuleAApiClient
-{
-    Task<List<ProductDto>> GetAllProductsAsync();
-    Task<ProductDto?> GetProductByCodeAsync(string code);
-    Task<ProductDto> CreateProductAsync(ProductDto product);
-    Task<ProductDto?> UpdateProductAsync(int productId, ProductDto product);
-}
 
 public class ModuleAApiClient : IModuleAApiClient
 {
