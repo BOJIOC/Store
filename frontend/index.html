@@ -1,13 +1,948 @@
 <!DOCTYPE html>
-<html lang="">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MegaMarket Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .fade-enter-active,
+    .fade-leave-active {
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .fade-enter-from,
+    .fade-leave-to {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    .spin {
+      animation: spin 1s linear;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .sidebar-item.active {
+      border-left: 4px solid #6366f1;
+      background-color: #eef2ff;
+    }
+    .sidebar-item.active .sidebar-icon {
+      color: #6366f1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="min-h-screen bg-gray-50 flex flex-col">
+      <!-- Header -->
+      <header class="bg-indigo-600 text-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <div @click="toggleSpin" class="flex items-center cursor-pointer">
+              <i class="fas fa-store text-2xl mr-2" :class="{ spin: spinActive }"></i>
+              <h1 class="text-2xl font-bold">MegaMarket</h1>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <div class="relative">
+              <i class="fas fa-bell text-xl cursor-pointer hover:text-indigo-200"></i>
+              <span v-if="notifications.length" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                {{ notifications.length }}
+              </span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div class="h-8 w-8 rounded-full bg-indigo-400 flex items-center justify-center">
+                <i class="fas fa-user text-white"></i>
+              </div>
+              <span class="font-medium">Admin</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="flex flex-1">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-md hidden md:block">
+          <nav class="p-4">
+            <div class="mb-8">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">MAIN NAVIGATION</h3>
+              <ul class="mt-4 space-y-1">
+                <li v-for="mod in modules" :key="mod.id">
+                  <a href="#" 
+                    @click.prevent="activeModule = mod.id"
+                    class="sidebar-item flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                    :class="{ active: activeModule === mod.id }">
+                    <span class="sidebar-icon mr-3">
+                      <i :class="mod.icon"></i>
+                    </span>
+                    <span>{{ mod.label }}</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </aside>
+
+        <!-- Mobile sidebar toggle -->
+        <div class="md:hidden fixed bottom-4 right-4 z-50">
+          <button @click="mobileSidebarOpen = !mobileSidebarOpen" class="bg-indigo-600 text-white p-3 rounded-full shadow-lg">
+            <i class="fas fa-bars"></i>
+          </button>
+        </div>
+
+        <!-- Mobile sidebar -->
+        <div v-if="mobileSidebarOpen" class="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" @click="mobileSidebarOpen = false"></div>
+        <aside v-if="mobileSidebarOpen" class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out">
+          <div class="p-4">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-xl font-bold text-indigo-600">Menu</h2>
+              <button @click="mobileSidebarOpen = false" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <ul class="space-y-2">
+              <li v-for="mod in modules" :key="mod.id">
+                <a href="#" 
+                  @click.prevent="activeModule = mod.id; mobileSidebarOpen = false"
+                  class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                  :class="{ 'bg-gray-100': activeModule === mod.id }">
+                  <span class="mr-3 text-indigo-600">
+                    <i :class="mod.icon"></i>
+                  </span>
+                  <span>{{ mod.label }}</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 p-4 md:p-6 overflow-auto">
+          <transition name="fade" mode="out-in">
+            <div :key="activeModule" class="bg-white rounded-lg shadow-sm p-6">
+              <!-- ======================== МОДУЛЬ A ========================= -->
+              <section v-if="activeModule === 'A'">
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-database mr-3 text-indigo-500"></i>
+                    Учетная система
+                  </h2>
+                  <div class="flex space-x-2">
+                    <button @click="loadAllDataA" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-200 transition-colors">
+                      <i class="fas fa-sync-alt mr-2"></i>Обновить все
+                    </button>
+                  </div>
+                </div>
+                <p class="text-gray-600 mb-6">Управление товарами, сотрудниками, клиентами и другими учетными данными</p>
+
+                <!-- Products section -->
+                <div class="mb-8">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                      <i class="fas fa-boxes mr-2 text-blue-500"></i>
+                      Товары
+                    </h3>
+                    <button @click="loadProducts" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-md text-sm hover:bg-blue-100 transition-colors">
+                      <i class="fas fa-redo mr-1"></i>Загрузить
+                    </button>
+                  </div>
+                  
+                  <div v-if="loadingProducts" class="flex justify-center py-4">
+                    <i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i>
+                  </div>
+                  
+                  <div v-else>
+                    <div v-if="products.length" class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                          <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Код</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Наименование</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Бренд</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Группа</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Цена</th>
+                          </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                          <tr v-for="prod in products" :key="prod.id" class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ prod.code }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ prod.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ prod.brand }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ prod.group }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ prod.price ? `${prod.price} ₽` : '-' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="bg-gray-50 rounded-md p-4 text-center text-gray-500">
+                      <i class="fas fa-box-open text-2xl mb-2"></i>
+                      <p>Нет данных о товарах</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Employees section -->
+                <div class="mb-8">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                      <i class="fas fa-users mr-2 text-green-500"></i>
+                      Сотрудники
+                    </h3>
+                    <button @click="loadEmployees" class="bg-green-50 text-green-600 px-3 py-1 rounded-md text-sm hover:bg-green-100 transition-colors">
+                      <i class="fas fa-redo mr-1"></i>Загрузить
+                    </button>
+                  </div>
+                  
+                  <div v-if="loadingEmployees" class="flex justify-center py-4">
+                    <i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i>
+                  </div>
+                  
+                  <div v-else>
+                    <div v-if="employees.length" class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                          <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Отдел</th>
+                          </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                          <tr v-for="emp in employees" :key="emp.id" class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ emp.id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ emp.fullName }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ emp.position }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ emp.department || '-' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="bg-gray-50 rounded-md p-4 text-center text-gray-500">
+                      <i class="fas fa-user-slash text-2xl mb-2"></i>
+                      <p>Нет данных о сотрудниках</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add client form -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-user-plus mr-2 text-purple-500"></i>
+                    Добавить клиента
+                  </h3>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Код клиента</label>
+                      <input v-model="newClient.code" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Имя клиента</label>
+                      <input v-model="newClient.name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Контактная информация</label>
+                      <input v-model="newClient.contactInfo" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                  </div>
+                  
+                  <div class="flex justify-end space-x-3">
+                    <button @click="resetClientForm" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+                      Сбросить
+                    </button>
+                    <button @click="createClientForm" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center">
+                      <i class="fas fa-save mr-2"></i> Сохранить
+                    </button>
+                  </div>
+                  
+                  <div v-if="clientsMessage" class="mt-4 p-3 rounded-md" :class="clientsMessage.includes('ошибк') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
+                    {{ clientsMessage }}
+                  </div>
+                </div>
+              </section>
+
+              <!-- ======================== МОДУЛЬ B ========================= -->
+              <section v-else-if="activeModule === 'B'">
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-truck mr-3 text-blue-500"></i>
+                    Курьерская служба
+                  </h2>
+                  <div class="flex space-x-2">
+                    <button @click="loadOrdersB" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-md hover:bg-blue-200 transition-colors">
+                      <i class="fas fa-sync-alt mr-2"></i>Обновить
+                    </button>
+                  </div>
+                </div>
+                <p class="text-gray-600 mb-6">Просмотр и редактирование заказов, управление доставкой</p>
+
+                <div class="mb-8">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                      <i class="fas fa-clipboard-list mr-2 text-orange-500"></i>
+                      Список заказов
+                    </h3>
+                    <div class="flex space-x-2">
+                      <select v-model="orderFilter" class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="all">Все заказы</option>
+                        <option value="new">Новые</option>
+                        <option value="processing">В обработке</option>
+                        <option value="delivered">Доставленные</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div v-if="loadingOrders" class="flex justify-center py-4">
+                    <i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+                  </div>
+                  
+                  <div v-else>
+                    <div v-if="filteredOrders.length" class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                          <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Номер</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Адрес</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                          </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                          <tr v-for="o in filteredOrders" :key="o.id" class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ o.id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ o.clientName }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ o.address }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                              <span class="px-2 py-1 rounded-full text-xs" 
+                                :class="{
+                                  'bg-yellow-100 text-yellow-800': o.status === 'new',
+                                  'bg-blue-100 text-blue-800': o.status === 'processing',
+                                  'bg-green-100 text-green-800': o.status === 'delivered'
+                                }">
+                                {{ getStatusText(o.status) }}
+                              </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <button @click="editOrder(o)" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                <i class="fas fa-edit"></i>
+                              </button>
+                              <button @click="updateOrderStatus(o.id, 'delivered')" class="text-green-600 hover:text-green-900">
+                                <i class="fas fa-check-circle"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="bg-gray-50 rounded-md p-4 text-center text-gray-500">
+                      <i class="fas fa-clipboard text-2xl mb-2"></i>
+                      <p>Нет заказов</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="ordersBMessage" class="mt-4 p-3 rounded-md" :class="ordersBMessage.includes('ошибк') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
+                  {{ ordersBMessage }}
+                </div>
+              </section>
+
+              <!-- ======================== МОДУЛЬ V ========================= -->
+              <section v-else-if="activeModule === 'V'">
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-file-import mr-3 text-purple-500"></i>
+                    Импорт/Экспорт данных
+                  </h2>
+                  <div class="flex space-x-2">
+                    <button @click="importExportCheck" class="bg-purple-100 text-purple-700 px-4 py-2 rounded-md hover:bg-purple-200 transition-colors">
+                      <i class="fas fa-sync-alt mr-2"></i>Проверить
+                    </button>
+                  </div>
+                </div>
+                <p class="text-gray-600 mb-6">Загрузка прайс-листов, обмен с интернет-магазином и другими системами</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <!-- Import section -->
+                  <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <i class="fas fa-file-import mr-2 text-blue-500"></i>
+                      Импорт данных
+                    </h3>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Выберите файл для импорта</label>
+                      <div class="flex items-center">
+                        <input type="file" class="hidden" id="importFile" @change="handleFileUpload">
+                        <label for="importFile" class="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
+                          Выбрать файл
+                        </label>
+                        <span class="ml-3 text-sm text-gray-500">{{ selectedFile ? selectedFile.name : 'Файл не выбран' }}</span>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Тип импорта</label>
+                      <select v-model="importType" class="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="prices">Прайс-лист</option>
+                        <option value="products">Товары</option>
+                        <option value="clients">Клиенты</option>
+                      </select>
+                    </div>
+                    
+                    <button @click="importData" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors flex items-center justify-center">
+                      <i class="fas fa-upload mr-2"></i> Импортировать
+                    </button>
+                  </div>
+
+                  <!-- Export section -->
+                  <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <i class="fas fa-file-export mr-2 text-green-500"></i>
+                      Экспорт данных
+                    </h3>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Тип экспорта</label>
+                      <select v-model="exportType" class="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="prices">Прайс-лист</option>
+                        <option value="products">Товары</option>
+                        <option value="orders">Заказы</option>
+                      </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Формат</label>
+                      <select v-model="exportFormat" class="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="csv">CSV</option>
+                        <option value="excel">Excel</option>
+                        <option value="json">JSON</option>
+                      </select>
+                    </div>
+                    
+                    <button @click="exportData" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center">
+                      <i class="fas fa-download mr-2"></i> Экспортировать
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Import check results -->
+                <div v-if="importCheckResult.length" class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                  <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-clipboard-check mr-2 text-purple-500"></i>
+                    Результаты проверки
+                  </h3>
+                  
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-gray-50">
+                        <tr>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Файл</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Записей</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ошибки</th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-white divide-y divide-gray-200">
+                        <tr v-for="item in importCheckResult" :key="item.file" class="hover:bg-gray-50">
+                          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ item.file }}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 py-1 rounded-full text-xs" 
+                              :class="{
+                                'bg-green-100 text-green-800': item.status === 'success',
+                                'bg-yellow-100 text-yellow-800': item.status === 'warning',
+                                'bg-red-100 text-red-800': item.status === 'error'
+                              }">
+                              {{ item.status }}
+                            </span>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.records || '-' }}</td>
+                          <td class="px-6 py-4 text-sm text-gray-500">{{ item.errors || 'Нет' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+
+              <!-- ======================== МОДУЛЬ G ========================= -->
+              <section v-else-if="activeModule === 'G'">
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-chart-line mr-3 text-green-500"></i>
+                    Оптимизация бизнеса
+                  </h2>
+                  <div class="flex space-x-2">
+                    <button @click="generateLabelsG" class="bg-green-100 text-green-700 px-4 py-2 rounded-md hover:bg-green-200 transition-colors">
+                      <i class="fas fa-tags mr-2"></i>Этикетки
+                    </button>
+                  </div>
+                </div>
+                <p class="text-gray-600 mb-6">Подпитка магазинов, печать этикеток, управление акциями и аналитика</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <!-- Labels section -->
+                  <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <i class="fas fa-tags mr-2 text-blue-500"></i>
+                      Генерация этикеток
+                    </h3>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Тип этикеток</label>
+                      <select v-model="labelType" class="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="price">Ценники</option>
+                        <option value="barcode">Штрих-коды</option>
+                        <option value="promo">Акционные</option>
+                      </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Количество</label>
+                      <input v-model="labelCount" type="number" min="1" max="100" class="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                      <label class="flex items-center">
+                        <input v-model="includeMarketing" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Включить маркетинговую информацию</span>
+                      </label>
+                    </div>
+                    
+                    <button @click="generateLabelsG" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center">
+                      <i class="fas fa-print mr-2"></i> Сформировать
+                    </button>
+                    
+                    <div v-if="labelResult" class="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md">
+                      {{ labelResult }}
+                    </div>
+                  </div>
+
+                  <!-- Analytics section -->
+                  <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <i class="fas fa-chart-pie mr-2 text-purple-500"></i>
+                      Аналитика продаж
+                    </h3>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Период</label>
+                      <select v-model="analyticsPeriod" class="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="day">За день</option>
+                        <option value="week">За неделю</option>
+                        <option value="month">За месяц</option>
+                        <option value="quarter">За квартал</option>
+                        <option value="year">За год</option>
+                      </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Тип отчета</label>
+                      <select v-model="analyticsType" class="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="sales">Продажи</option>
+                        <option value="profit">Прибыль</option>
+                        <option value="top">Топ товары</option>
+                        <option value="categories">По категориям</option>
+                      </select>
+                    </div>
+                    
+                    <button @click="generateAnalytics" class="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center">
+                      <i class="fas fa-chart-bar mr-2"></i> Сформировать отчет
+                    </button>
+                    
+                    <div v-if="analyticsResult" class="mt-4">
+                      <div class="bg-white p-4 rounded-md shadow-sm">
+                        <h4 class="font-medium text-gray-800 mb-2">Результаты анализа</h4>
+                        <div class="h-40 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
+                          Здесь будет график
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Promotions section -->
+                <div class="bg-gray-50 rounded-lg p-6 mb-8">
+                  <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-percentage mr-2 text-red-500"></i>
+                    Управление акциями
+                  </h3>
+                  
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Текущие акции</label>
+                    <div v-if="promotions.length" class="space-y-2">
+                      <div v-for="promo in promotions" :key="promo.id" class="bg-white p-3 rounded-md shadow-sm border-l-4" :class="promo.active ? 'border-green-500' : 'border-gray-300'">
+                        <div class="flex justify-between items-start">
+                          <div>
+                            <h4 class="font-medium">{{ promo.name }}</h4>
+                            <p class="text-sm text-gray-600">{{ promo.description }}</p>
+                            <p class="text-xs text-gray-500 mt-1">С {{ promo.startDate }} по {{ promo.endDate }}</p>
+                          </div>
+                          <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                            {{ promo.discount }}% скидка
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else class="bg-white p-4 rounded-md shadow-sm text-center text-gray-500">
+                      <i class="fas fa-tag text-2xl mb-2"></i>
+                      <p>Нет активных акций</p>
+                    </div>
+                  </div>
+                  
+                  <button @click="loadPromotions" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2"></i> Обновить список акций
+                  </button>
+                </div>
+              </section>
+            </div>
+          </transition>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed } = Vue;
+    
+    createApp({
+      setup() {
+        // ============
+        // Мультистраничность
+        // ============
+        const modules = [
+          { id: 'A', label: 'Учетная система', icon: 'fas fa-database' },
+          { id: 'B', label: 'Курьерская служба', icon: 'fas fa-truck' },
+          { id: 'V', label: 'Импорт/Экспорт', icon: 'fas fa-file-import' },
+          { id: 'G', label: 'Оптимизация', icon: 'fas fa-chart-line' },
+        ];
+        const activeModule = ref('A');
+        const mobileSidebarOpen = ref(false);
+
+        const spinActive = ref(false);
+        function toggleSpin() {
+          spinActive.value = !spinActive.value;
+          setTimeout(() => { spinActive.value = false }, 1000);
+        }
+
+        // Notifications
+        const notifications = ref([
+          { id: 1, text: 'Новый заказ #1234', type: 'order', read: false },
+          { id: 2, text: 'Обновление системы доступно', type: 'system', read: false }
+        ]);
+
+        // ============
+        // Базовые URL
+        // ============
+        const BASE_A = 'http://localhost:5027';
+        const BASE_B = 'http://localhost:5162';
+        const BASE_V = 'http://localhost:5004';
+        const BASE_G = 'http://localhost:5060';
+
+        // ======================
+        // МОДУЛЬ A
+        // ======================
+
+        // 1) Товары
+        const products = ref([]);
+        const loadingProducts = ref(false);
+        async function loadProducts() {
+          loadingProducts.value = true;
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 800));
+            products.value = [
+              { id: 1, code: 'PRD001', name: 'Ноутбук HP Pavilion', brand: 'HP', group: 'Электроника', price: 54990 },
+              { id: 2, code: 'PRD002', name: 'Смартфон Samsung Galaxy S21', brand: 'Samsung', group: 'Электроника', price: 69990 },
+              { id: 3, code: 'PRD003', name: 'Кофеварка Bosch', brand: 'Bosch', group: 'Бытовая техника', price: 12990 },
+              { id: 4, code: 'PRD004', name: 'Наушники Sony WH-1000XM4', brand: 'Sony', group: 'Аксессуары', price: 24990 },
+              { id: 5, code: 'PRD005', name: 'Пылесос Dyson V11', brand: 'Dyson', group: 'Бытовая техника', price: 45990 },
+            ];
+          } catch (error) {
+            console.error('Ошибка загрузки товаров:', error);
+          } finally {
+            loadingProducts.value = false;
+          }
+        }
+
+        // 2) Сотрудники
+        const employees = ref([]);
+        const loadingEmployees = ref(false);
+        async function loadEmployees() {
+          loadingEmployees.value = true;
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 800));
+            employees.value = [
+              { id: 1, fullName: 'Иванов Иван Иванович', position: 'Менеджер', department: 'Продажи' },
+              { id: 2, fullName: 'Петрова Анна Сергеевна', position: 'Кассир', department: 'Касса' },
+              { id: 3, fullName: 'Сидоров Алексей Владимирович', position: 'Кладовщик', department: 'Склад' },
+              { id: 4, fullName: 'Кузнецова Елена Дмитриевна', position: 'Администратор', department: 'Администрация' },
+            ];
+          } catch (error) {
+            console.error('Ошибка загрузки сотрудников:', error);
+          } finally {
+            loadingEmployees.value = false;
+          }
+        }
+
+        // 3) Создание клиента (форма)
+        const newClient = ref({
+          code: '',
+          name: '',
+          contactInfo: ''
+        });
+        const clientsMessage = ref('');
+        function resetClientForm() {
+          newClient.value = {
+            code: '',
+            name: '',
+            contactInfo: ''
+          };
+          clientsMessage.value = '';
+        }
+        async function createClientForm() {
+          if (!newClient.value.code || !newClient.value.name) {
+            clientsMessage.value = 'Ошибка: заполните обязательные поля (код и имя)';
+            return;
+          }
+          
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 500));
+            clientsMessage.value = `Клиент "${newClient.value.name}" (код: ${newClient.value.code}) успешно создан`;
+            resetClientForm();
+          } catch (error) {
+            clientsMessage.value = 'Ошибка при создании клиента: ' + error.message;
+          }
+        }
+
+        // Загрузка всех данных модуля A
+        async function loadAllDataA() {
+          await Promise.all([loadProducts(), loadEmployees()]);
+        }
+
+        // ======================
+        // МОДУЛЬ B
+        // ======================
+        const ordersB = ref([]);
+        const loadingOrders = ref(false);
+        const orderFilter = ref('all');
+        const ordersBMessage = ref('');
+
+        // Фильтрация заказов
+        const filteredOrders = computed(() => {
+          if (orderFilter.value === 'all') return ordersB.value;
+          return ordersB.value.filter(o => o.status === orderFilter.value);
+        });
+
+        // Текстовое представление статуса
+        function getStatusText(status) {
+          const statusMap = {
+            'new': 'Новый',
+            'processing': 'В обработке',
+            'delivered': 'Доставлен'
+          };
+          return statusMap[status] || status;
+        }
+
+        async function loadOrdersB() {
+          loadingOrders.value = true;
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 800));
+            ordersB.value = [
+              { id: 1, clientName: 'Иванов И.И.', address: 'ул. Ленина, 10, кв. 5', status: 'new' },
+              { id: 2, clientName: 'Петров П.П.', address: 'ул. Гагарина, 42', status: 'processing' },
+              { id: 3, clientName: 'Сидоров С.С.', address: 'пр. Мира, 15, кв. 12', status: 'new' },
+              { id: 4, clientName: 'Кузнецова Е.Д.', address: 'ул. Садовая, 7', status: 'delivered' },
+            ];
+          } catch (error) {
+            console.error('Ошибка загрузки заказов:', error);
+          } finally {
+            loadingOrders.value = false;
+          }
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const order = ordersB.value.find(o => o.id === orderId);
+            if (order) {
+              order.status = newStatus;
+              ordersBMessage.value = `Статус заказа #${orderId} изменен на "${getStatusText(newStatus)}"`;
+            }
+          } catch (error) {
+            ordersBMessage.value = 'Ошибка при обновлении заказа: ' + error.message;
+          }
+        }
+
+        function editOrder(order) {
+          // В реальном приложении здесь можно открыть модальное окно для редактирования
+          alert(`Редактирование заказа #${order.id} (${order.clientName})`);
+        }
+
+        // ======================
+        // МОДУЛЬ V
+        // ======================
+
+        const importCheckResult = ref([]);
+        const selectedFile = ref(null);
+        const importType = ref('prices');
+        const exportType = ref('prices');
+        const exportFormat = ref('csv');
+
+        function handleFileUpload(event) {
+          const file = event.target.files[0];
+          if (file) {
+            selectedFile.value = file;
+          }
+        }
+
+        async function importExportCheck() {
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            importCheckResult.value = [
+              { file: 'prices_2023.csv', status: 'success', records: 125, errors: 0 },
+              { file: 'products_update.xlsx', status: 'warning', records: 87, errors: 3 },
+              { file: 'clients_old.json', status: 'error', records: 0, errors: 'Формат не поддерживается' }
+            ];
+          } catch (error) {
+            console.error('Ошибка проверки импорта:', error);
+          }
+        }
+
+        async function importData() {
+          if (!selectedFile.value) {
+            alert('Выберите файл для импорта');
+            return;
+          }
+          alert(`Импорт данных типа "${importType.value}" из файла "${selectedFile.value.name}"`);
+          // Здесь будет реальная логика импорта
+        }
+
+        async function exportData() {
+          alert(`Экспорт данных типа "${exportType.value}" в формате "${exportFormat.value}"`);
+          // Здесь будет реальная логика экспорта
+        }
+
+        // ======================
+        // МОДУЛЬ G
+        // ======================
+        const labelResult = ref('');
+        const labelType = ref('price');
+        const labelCount = ref(10);
+        const includeMarketing = ref(true);
+        
+        const analyticsResult = ref('');
+        const analyticsPeriod = ref('week');
+        const analyticsType = ref('sales');
+        
+        const promotions = ref([]);
+
+        async function generateLabelsG() {
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 800));
+            labelResult.value = `Сформировано ${labelCount.value} этикеток типа "${labelType.value}" (маркетинг: ${includeMarketing.value ? 'да' : 'нет'})`;
+          } catch (error) {
+            labelResult.value = 'Ошибка генерации этикеток: ' + error.message;
+          }
+        }
+
+        async function generateAnalytics() {
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            analyticsResult.value = `Отчет "${analyticsType.value}" за период "${analyticsPeriod.value}" сформирован`;
+          } catch (error) {
+            analyticsResult.value = 'Ошибка генерации отчета: ' + error.message;
+          }
+        }
+
+        async function loadPromotions() {
+          try {
+            // Имитация запроса к API
+            await new Promise(resolve => setTimeout(resolve, 700));
+            promotions.value = [
+              { id: 1, name: 'Летняя распродажа', description: 'Скидки на летние товары', discount: 15, startDate: '01.06.2023', endDate: '31.08.2023', active: true },
+              { id: 2, name: 'Скидка новым клиентам', description: 'Специальное предложение для новых покупателей', discount: 10, startDate: '01.01.2023', endDate: '31.12.2023', active: true },
+              { id: 3, name: 'Черная пятница', description: 'Самые большие скидки года', discount: 30, startDate: '24.11.2023', endDate: '26.11.2023', active: false },
+            ];
+          } catch (error) {
+            console.error('Ошибка загрузки акций:', error);
+          }
+        }
+
+        // Загрузка начальных данных
+        loadProducts();
+        loadOrdersB();
+        loadPromotions();
+
+        return {
+          modules,
+          activeModule,
+          mobileSidebarOpen,
+          spinActive,
+          toggleSpin,
+          notifications,
+          
+          // Module A
+          products,
+          loadingProducts,
+          loadProducts,
+          employees,
+          loadingEmployees,
+          loadEmployees,
+          newClient,
+          clientsMessage,
+          createClientForm,
+          resetClientForm,
+          loadAllDataA,
+          
+          // Module B
+          ordersB,
+          loadingOrders,
+          orderFilter,
+          filteredOrders,
+          ordersBMessage,
+          loadOrdersB,
+          updateOrderStatus,
+          editOrder,
+          getStatusText,
+          
+          // Module V
+          importCheckResult,
+          selectedFile,
+          importType,
+          exportType,
+          exportFormat,
+          importExportCheck,
+          handleFileUpload,
+          importData,
+          exportData,
+          
+          // Module G
+          labelResult,
+          labelType,
+          labelCount,
+          includeMarketing,
+          generateLabelsG,
+          analyticsResult,
+          analyticsPeriod,
+          analyticsType,
+          generateAnalytics,
+          promotions,
+          loadPromotions
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
 </html>
